@@ -1,37 +1,32 @@
 package Main.Java.Notes;
 
-import Main.Java.Utils.Constants;
-
-import java.awt.*;
-
 public class Note {
 
     private int lane;
-    private int x;
-    private int y;
-    private final int SPEED = 3;
+    private long hitTime;
+    private float y;
 
-    public Note(int x) {
+    public static final long HIT_LINE_TIME = 1500;
+    public static final float SPEED = 0.3f;
+
+    public Note(int lane, long hitTime) {
         this.lane = lane;
-        this.x = Constants.LANE_X[lane];
-        this.y = Constants.NOTE_Y_START;
+        this.hitTime = hitTime;
+        this.y = -50;
     }
 
-    public void update() {
-        y += SPEED;
+    public void update(long songTime) {
+        long spawnTime = hitTime - HIT_LINE_TIME;
+        long diff = songTime - spawnTime;
+        y = diff * SPEED;
     }
 
-    public void draw(Graphics g) {
-        g.setColor(Color.CYAN);
-        g.fillOval(x, y, 30, 30);
-    }
-
-    public int getY(){
-        return y;
-    }
-
-    public int getX(){
+    public int getLane() {
         return lane;
+    }
+
+    public float getY() {
+        return y;
     }
 }
 
