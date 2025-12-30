@@ -5,29 +5,28 @@ public class Note {
     public static final long HIT_LINE_TIME = 2000; // ms
     public static final float SPEED = 0.2f;
 
+    public static final long PERFECT_WINDOW = 80; // ms
+    public static final long GOOD_WINDOW = 150;   // ms
+
     private int lane;
     private float y;
     private long hitTime;
     private long spawnTime;
+    private boolean hit = false;
 
     public Note(int lane, long hitTime) {
         this.lane = lane;
         this.hitTime = hitTime;
         this.spawnTime = hitTime - HIT_LINE_TIME;
-        this.y = -30; // 🔑 nasce fora da tela
+        this.y = -30;
     }
 
     public void update(long songTime) {
 
-        // 🔒 ANTES DO SPAWN → NÃO MOVE
-        if (songTime < spawnTime) {
-            return;
-        }
+        if (songTime < spawnTime) return;
 
         float progress = (float)(songTime - spawnTime) / HIT_LINE_TIME;
-
-        // progress vai de 0 → 1
-        y = progress * 500; //distância até a linha de hit
+        y = progress * 500;
     }
 
     public int getLane() {
@@ -38,8 +37,24 @@ public class Note {
         return y;
     }
 
+    public long getHitTime() {
+        return hitTime;
+    }
+
+    public boolean isHit() {
+        return hit;
+    }
+
+    public void markHit() {
+        hit = true;
+    }
+
+    public long getDelta(long songTime) {
+        return Math.abs(songTime - hitTime);
+    }
+
     public boolean isMissed(long songTime) {
-        return songTime > hitTime + 300;
+        return !hit && songTime - hitTime > GOOD_WINDOW;
     }
 }
 

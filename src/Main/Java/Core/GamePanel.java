@@ -23,6 +23,13 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     private Random random = new Random();
     private int lastLane = -1;
 
+    private static final int LANE_COUNT = 4;
+    private static final int LANE_WIDTH = 80;
+    private static final int LANE_START_X = 100;
+
+    private static final int HIT_LINE_Y = 500;
+    private static final int BUTTON_HEIGTH = 20;
+
     private static final long INTRO_DELAY = 7800;
 
     private MusicPlayer music;
@@ -103,6 +110,12 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
             chartIndex++;
         }
 
+        notes.removeIf(note ->
+                !note.isHit() &&
+                        songTime - note.getHitTime() > Note.GOOD_WINDOW
+        );
+
+
         for (Note note : notes) {
             note.update(songTime);
         }
@@ -110,13 +123,29 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
     private int[] generateRandomLanes() {
 
-        int laneCount = random.nextInt(3) + 1; // 1 a 3 notas
+        double roll = random.nextDouble();
+        int laneCount;
+
+        if (roll < 0.65) {
+            laneCount = 1;      // 65%
+        } else if (roll < 0.95) {
+            laneCount = 2;      // 30%
+        } else {
+            laneCount = 3;      // 5%
+        }
+
         Set<Integer> lanesSet = new HashSet<>();
 
         while (lanesSet.size() < laneCount) {
-            lanesSet.add(random.nextInt(4)); // lanes 0-3
+            int lane = random.nextInt(4);
+
+            // evita repetir lane sozinho
+            if (laneCount == 1 && lane == lastLane) continue;
+
+            lanesSet.add(lane);
         }
 
+        lastLane = lanesSet.iterator().next();
         return lanesSet.stream().mapToInt(Integer::intValue).toArray();
     }
 
@@ -125,8 +154,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         super.paintComponent(g); //Limpa o desenho antes de partir para o próximo
 
         Graphics2D g2 = (Graphics2D) g;
-        g2.setColor(Color.WHITE);
-        g2.drawLine(0, 500, getWidth(), 500);
+        drawLanes(g2);
+        drawHitLine(g2);
+        drawButtons(g2);
 
         for (Note note : notes) {
             if (note.getY() > -50 && note.getY() < getHeight()) {
@@ -135,8 +165,46 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
     }
 
+    private void drawLanes(Graphics2D g){
+        g.setColor(Color.DARK_GRAY);
+
+        for (int i = 0; i <= LANE_COUNT; i++){
+            int x = LANE_START_X + i *LANE_WIDTH;
+            g.drawLine(x, 0, x, getHeight());
+        }
+    }
+
+    private void drawButtons(Graphics2D g){
+
+        for (int lane = 0; lane < LANE_COUNT; lane++){
+            int x = LANE_START_X + lane * LANE_WIDTH;
+            int y = HIT_LINE_Y;
+
+            switch (lane){
+                case 0 -> g.setColor(Color.GREEN);
+                case 1 -> g.setColor(Color.RED);
+                case 2 -> g.setColor(Color.YELLOW);
+                case 3 -> g.setColor(Color.BLUE);
+            }
+
+            g.fillRoundRect(
+                    x + 10,
+                    y,
+                    LANE_WIDTH - 20,
+                    BUTTON_HEIGTH,
+                    10,
+                    10
+            );
+        }
+    }
+
+    private void drawHitLine(Graphics2D g){
+        g.setColor(Color.WHITE);
+        g.drawLine(0, HIT_LINE_Y, getWidth(), HIT_LINE_Y);
+    }
+
     private void drawNote(Graphics2D g, Note note) {
-        int x = 100 + note.getLane() * 80;
+        int x = LANE_START_X + note.getLane() * LANE_WIDTH + 10;
 
         switch (note.getLane()) {
             case 0 -> g.setColor(Color.GREEN);
@@ -148,6 +216,16 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         g.fillRoundRect(x, (int) note.getY(), 60, 20, 10, 10);
     }
 
+    private int keyToLane(int keyCode){
+        return switch (keyCode) {
+            case KeyEvent.VK_A -> 0;
+            case KeyEvent.VK_S -> 1;
+            case KeyEvent.VK_D -> 2;
+            case KeyEvent.VK_F -> 3;
+            default -> -1;
+        };
+    }
+
     @Override
     public void keyTyped(KeyEvent e) {
 
@@ -155,7 +233,42 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
     @Override
     public void keyPressed(KeyEvent e) {
+        int lane = keyToLane(e.getKeyCode());
+        if (lane == -1) return;
 
+        long songTime = (music.getTimeMillis() - gameStartTime) - INTRO_DELAY;
+
+        Note closestNote = null;
+        long smallestDelta = Long.MAX_VALUE;
+
+        for (Note note : notes){
+            if (note.isHit()) continue;
+            if (note.getLane() != lane) continue;
+
+            long delta = Math.abs(songTime - note.getHitTime());
+
+            if (delta < smallestDelta){
+                smallestDelta = delta;
+                closestNote = note;
+            }
+        }
+
+        if (closestNote == null) return;
+
+        if (smallestDelta <= Note.PERFECT_WINDOW) {
+            registerHit("PERFECT", closestNote);
+        } else if (smallestDelta <= Note.GOOD_WINDOW) {
+            registerHit("GOOD", closestNote);
+        } else {
+            // fora da janela → ignora
+        }
+    }
+
+    private void registerHit(String result, Note note) {
+        note.markHit();
+        notes.remove(note);
+
+        System.out.println(result);
     }
 
     @Override
