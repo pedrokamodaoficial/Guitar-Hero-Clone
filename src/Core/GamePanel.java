@@ -10,6 +10,9 @@ import java.util.ArrayList;
 
 public class GamePanel extends JPanel implements Runnable, KeyListener {
 
+    private long lastSpawnTime;
+    private long currentSpawnTime;
+
     private boolean running = false; //Controla se o jogo está ou não rodando
     private ArrayList<Note> notes; //Criando uma lista das notas
 
@@ -19,11 +22,9 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         addKeyListener(this); //Diz que essa janela escuta esse teclado
         setFocusable(true); //Permite que o painel receba o foco (Fundamental para o funcionamento do teclado)
 
+        lastSpawnTime = System.currentTimeMillis();
+
         notes = new ArrayList<>();
-        notes.add(new Note(200, -30)); //Criando nota de teste
-        notes.add(new Note(400, -30));
-        notes.add(new Note(300, -30));
-        notes.add(new Note(100, -30));
     }
 
     @Override //Garante foco quando a janela está na tela
@@ -57,6 +58,8 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     private void update() {
+        spawnNotes();
+
         for (Note note : notes) {
             note.update();
         }
@@ -68,6 +71,49 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
         for (Note note : notes) {
             note.draw(g);
+        }
+    }
+
+    //Metodo para gerar notas "Aleatoriamente"
+    private void spawnNotes(){
+        currentSpawnTime = System.currentTimeMillis();
+
+        //Gerando uma nota a cada 800 ms
+        if (currentSpawnTime - lastSpawnTime >= 800){
+            int pattern = (int)(Math.random() *3);
+
+            switch (pattern) {
+                case 0:
+                    //1 nota
+                    notes.add(new Note(200, -30));
+                    break;
+
+                case 1:
+                    //2 notas ao mesmo tempo
+                    notes.add(new Note(150, -30));
+                    notes.add(new Note(250, -30));
+                    break;
+
+                case 2:
+                    //3 notas ao mesmo tempo
+                    notes.add(new Note(250, -30));
+                    notes.add(new Note(300, -30));
+                    notes.add(new Note(350, -30));
+                    break;
+
+                case 3:
+                    //nota agora + outra logo depois
+                    notes.add(new Note(200, -30));
+
+                    new Thread(() -> {
+                        try {
+                            Thread.sleep(200);
+                            notes.add(new Note(300, -30));
+                        } catch (InterruptedException e) {}
+                    }).start();
+                    break;
+            }
+            lastSpawnTime = currentSpawnTime;
         }
     }
 
