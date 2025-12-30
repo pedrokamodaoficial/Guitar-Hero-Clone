@@ -1,5 +1,6 @@
 package Main.Java.Core;
 
+import Main.Chart.FCPChartLoader;
 import Main.Java.Audio.MusicPlayer;
 import Main.Java.Notes.Note;
 import Main.Java.Notes.NoteEvent;
@@ -8,6 +9,9 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 
 public class GamePanel extends JPanel implements Runnable, KeyListener {
 
@@ -16,6 +20,10 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     private ArrayList<NoteEvent> chart;
     private int chartIndex;
     private long gameStartTime;
+    private Random random = new Random();
+    private int lastLane = -1;
+
+    private static final long INTRO_DELAY = 7800;
 
     private MusicPlayer music;
 
@@ -32,17 +40,6 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         music = new MusicPlayer();
     }
 
-    private void loadChart() {
-        chart.clear();
-        chart.add(new NoteEvent(8022, 2));
-        chart.add(new NoteEvent(8022, 1));
-        chart.add(new NoteEvent(8430, 2));
-        chart.add(new NoteEvent(15000, 1, 3));
-        chart.add(new NoteEvent(18000, 4));
-        chart.add(new NoteEvent(22000, 0));
-        chart.add(new NoteEvent(26000, 2, 4));
-    }
-
     @Override //Garante foco quando a janela está na tela
     public void addNotify() {
         super.addNotify();
@@ -50,7 +47,11 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
     }
 
     public void startGame(){
-        loadChart();
+        chart = FCPChartLoader.load(
+                "src/Main/resources/Assets/FateOfOpheliaBeats.fcpxml"
+        );
+
+        chartIndex = 0;
 
         music.load("Assets/FateOfOphelia.wav");
         music.play();
@@ -81,14 +82,24 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
 
     private void update() {
 
-        long songTime = music.getTimeMillis() - gameStartTime;
+        long songTime = (music.getTimeMillis() - gameStartTime) - INTRO_DELAY;
 
-        while (chartIndex < chart.size() && songTime >= chart.get(chartIndex).time - Note.HIT_LINE_TIME){
+        if (songTime < 0) {
+            repaint();
+            return;
+        }
+
+        while (chartIndex < chart.size()
+                && songTime >= chart.get(chartIndex).time - Note.HIT_LINE_TIME) {
+
             NoteEvent event = chart.get(chartIndex);
 
-            for (int lane: event.lanes){
+            int[] lanes = generateRandomLanes();
+
+            for (int lane : lanes) {
                 notes.add(new Note(lane, event.time));
             }
+
             chartIndex++;
         }
 
@@ -97,11 +108,25 @@ public class GamePanel extends JPanel implements Runnable, KeyListener {
         }
     }
 
+    private int[] generateRandomLanes() {
+
+        int laneCount = random.nextInt(3) + 1; // 1 a 3 notas
+        Set<Integer> lanesSet = new HashSet<>();
+
+        while (lanesSet.size() < laneCount) {
+            lanesSet.add(random.nextInt(4)); // lanes 0-3
+        }
+
+        return lanesSet.stream().mapToInt(Integer::intValue).toArray();
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g); //Limpa o desenho antes de partir para o próximo
 
         Graphics2D g2 = (Graphics2D) g;
+        g2.setColor(Color.WHITE);
+        g2.drawLine(0, 500, getWidth(), 500);
 
         for (Note note : notes) {
             if (note.getY() > -50 && note.getY() < getHeight()) {

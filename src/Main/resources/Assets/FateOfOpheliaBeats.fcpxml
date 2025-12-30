@@ -11,10 +11,6 @@
     <library>
         <event name="Taylor Swift - The Fate of Ophelia (Official Music Video) Event">
             <asset-clip name="Taylor Swift - The Fate of Ophelia (Official Music Video)" ref="BMXRefBetmarkedClip" duration="7144000/30000s" audioRole="music" format="BMXRefTimelineFormat">
-                <marker start="0/30000s" duration="1/48000s" value="beat_at_0"></marker>
-                <marker start="15000/30000s" duration="1/48000s" value="beat_at_0.484027"></marker>
-                <marker start="17000/30000s" duration="1/48000s" value="beat_at_0.57"></marker>
-                <marker start="32000/30000s" duration="1/48000s" value="beat_at_1.062857"></marker>
                 <marker start="47000/30000s" duration="1/48000s" value="beat_at_1.555714"></marker>
                 <marker start="61000/30000s" duration="1/48000s" value="beat_at_2.048571"></marker>
                 <marker start="76000/30000s" duration="1/48000s" value="beat_at_2.541429"></marker>
